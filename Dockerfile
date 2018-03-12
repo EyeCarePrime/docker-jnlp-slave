@@ -21,8 +21,43 @@
 #  THE SOFTWARE.
 
 FROM jenkins/slave:3.16-1
-MAINTAINER Oleg Nenashev <o.v.nenashev@gmail.com>
+MAINTAINER Websystem3 DevOps <devops@websystem3.com>
 LABEL Description="This is a base image, which allows connecting Jenkins agents via JNLP protocols" Vendor="Jenkins project" Version="3.16"
+
+USER root
+
+# Install Docker Client
+RUN apt-get update \
+  && apt-get install -y \
+     apt-transport-https \
+     ca-certificates \
+     curl \
+     gnupg2 \
+     software-properties-common \
+  && add-apt-repository \
+        "deb [arch=amd64] https://download.docker.com/linux/$(. /etc/os-release; echo "$ID") \
+        $(lsb_release -cs) \
+        stable" \
+  && apt-get update \
+  && apt-get install -y --allow-unauthenticated docker-ce
+
+# Install kubectl CLI
+RUN curl -L https://storage.googleapis.com/kubernetes-release/release/v1.9.2/bin/linux/amd64/kubectl -o /usr/local/bin/kubectl \ 
+  && chmod +x /usr/local/bin/kubectl
+
+# Install Azure CLI
+RUN apt-get update \
+  && apt-get install -y lsb-release apt-transport-https \
+  && rm -rf /var/lib/apt/lists/*
+
+RUN export AZ_REPO=$(lsb_release -cs) \
+    && echo "deb [arch=amd64] https://packages.microsoft.com/repos/azure-cli/ $AZ_REPO main" \
+    | tee /etc/apt/sources.list.d/azure-cli.list \
+    && apt-key adv --keyserver packages.microsoft.com --recv-keys 52E16F86FEE04B979B07E28DB02C46DF417A0893 \
+    && apt-get update \
+    && apt-get install azure-cli
+
+USER jenkins
 
 COPY jenkins-slave /usr/local/bin/jenkins-slave
 
